@@ -1,0 +1,14 @@
+# Flutter loyihasi uchun .gitignore
+.DS_Store
+.dart_tool/
+.packages
+.pub-cache/
+build/
+flutter_*.png
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+.idea/
+*.iml
+.vscode/
+.metadata
