@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 void main() {
@@ -18,15 +19,17 @@ Map<Language, Map<String, String>> localizedStrings = {
     'delete_completed': 'Bajarilganlarni o‘chirish',
     'no_completed': 'Bajarilgan rejalar yo‘q',
     'delete': 'O‘chirish',
-    'select_time': 'Vaqt tanlash',
-    'pomodoro_count': 'Pomodoro soni',
-    'no_time_selected': 'Vaqt tanlanmagan',
     'start_pomodoro': 'Pomodoro boshlash',
-    'pomodoro_timer': 'Pomodoro Taymeri',
+    'pomodoro_timer': 'Pomodoro',
     'day_mode': 'Kun rejimi',
     'night_mode': 'Tun rejimi',
-    'set_minutes': 'Daqiqalarni kiriting',
-    'enter_minutes': 'Daqiqalarni kiriting va Enter ni bosing',
+    'settings': 'Sozlamalar',
+    'work_time': 'Ish vaqti (minut)',
+    'short_break': 'Qisqa dam olish (minut)',
+    'long_break': 'Uzun dam olish (minut)',
+    'sessions_before_long': 'Uzun dam oldingi sessiyalar',
+    'break_time': 'Dam Olish Vaqti',
+    'pomodoro_complete': 'Pomodoro tugadi!',
   },
   Language.en: {
     'title': 'Daily Planner',
@@ -38,15 +41,17 @@ Map<Language, Map<String, String>> localizedStrings = {
     'delete_completed': 'Delete completed',
     'no_completed': 'No completed plans',
     'delete': 'Delete',
-    'select_time': 'Select time',
-    'pomodoro_count': 'Pomodoro count',
-    'no_time_selected': 'No time selected',
     'start_pomodoro': 'Start Pomodoro',
-    'pomodoro_timer': 'Pomodoro Timer',
+    'pomodoro_timer': 'Pomodoro',
     'day_mode': 'Day Mode',
     'night_mode': 'Night Mode',
-    'set_minutes': 'Set minutes',
-    'enter_minutes': 'Enter minutes and press Enter',
+    'settings': 'Settings',
+    'work_time': 'Work time (min)',
+    'short_break': 'Short break (min)',
+    'long_break': 'Long break (min)',
+    'sessions_before_long': 'Sessions before long break',
+    'break_time': 'Break Time',
+    'pomodoro_complete': 'Pomodoro completed!',
   },
   Language.ru: {
     'title': 'Ежедневный план',
@@ -58,15 +63,17 @@ Map<Language, Map<String, String>> localizedStrings = {
     'delete_completed': 'Удалить завершённые',
     'no_completed': 'Нет завершённых планов',
     'delete': 'Удалить',
-    'select_time': 'Выберите время',
-    'pomodoro_count': 'Количество Помодоро',
-    'no_time_selected': 'Время не выбрано',
     'start_pomodoro': 'Начать Помодоро',
-    'pomodoro_timer': 'Таймер Помодоро',
+    'pomodoro_timer': 'Помодоро',
     'day_mode': 'Дневной режим',
     'night_mode': 'Ночной режим',
-    'set_minutes': 'Введите минуты',
-    'enter_minutes': 'Введите минуты и нажмите Enter',
+    'settings': 'Настройки',
+    'work_time': 'Время работы (мин)',
+    'short_break': 'Короткий перерыв (мин)',
+    'long_break': 'Длинный перерыв (мин)',
+    'sessions_before_long': 'Сессии перед длинным перерывом',
+    'break_time': 'Время Перерыва',
+    'pomodoro_complete': 'Помодоро завершено!',
   },
 };
 
@@ -77,7 +84,18 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   Language _lang = Language.uz;
+
   bool isDarkMode = false;
+
+  // Global Pomodoro sozlamalari
+
+  int workTime = 25;
+
+  int shortBreak = 5;
+
+  int longBreak = 15;
+
+  int sessionsBeforeLong = 4;
 
   void toggleLanguage(Language lang) {
     setState(() {
@@ -91,6 +109,24 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  void updatePomodoroSettings({
+    int? newWorkTime,
+    int? newShortBreak,
+    int? newLongBreak,
+    int? newSessionsBeforeLong,
+  }) {
+    setState(() {
+      if (newWorkTime != null) workTime = newWorkTime;
+
+      if (newShortBreak != null) shortBreak = newShortBreak;
+
+      if (newLongBreak != null) longBreak = newLongBreak;
+
+      if (newSessionsBeforeLong != null)
+        sessionsBeforeLong = newSessionsBeforeLong;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -100,6 +136,7 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.purple),
         brightness: Brightness.light,
+        scaffoldBackgroundColor: Colors.grey[100],
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
@@ -107,6 +144,7 @@ class _MyAppState extends State<MyApp> {
           seedColor: Colors.purple,
           brightness: Brightness.dark,
         ),
+        scaffoldBackgroundColor: Colors.grey[900],
       ),
       themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: HomePage(
@@ -114,6 +152,11 @@ class _MyAppState extends State<MyApp> {
         isDarkMode: isDarkMode,
         onLanguageChanged: toggleLanguage,
         onThemeChanged: toggleTheme,
+        workTime: workTime,
+        shortBreak: shortBreak,
+        longBreak: longBreak,
+        sessionsBeforeLong: sessionsBeforeLong,
+        onSettingsChanged: updatePomodoroSettings,
       ),
     );
   }
@@ -121,29 +164,47 @@ class _MyAppState extends State<MyApp> {
 
 class Task {
   String title;
-  TimeOfDay? time;
-  int pomodoroCount;
+
   bool completed;
 
-  Task({
-    required this.title,
-    this.time,
-    this.pomodoroCount = 1,
-    this.completed = false,
-  });
+  Task({required this.title, this.completed = false});
 }
 
 class HomePage extends StatefulWidget {
   final Language lang;
+
   final bool isDarkMode;
+
   final ValueChanged<Language> onLanguageChanged;
+
   final ValueChanged<bool> onThemeChanged;
+
+  final int workTime;
+
+  final int shortBreak;
+
+  final int longBreak;
+
+  final int sessionsBeforeLong;
+
+  final Function({
+    int? newWorkTime,
+    int? newShortBreak,
+    int? newLongBreak,
+    int? newSessionsBeforeLong,
+  })
+  onSettingsChanged;
 
   HomePage({
     required this.lang,
     required this.isDarkMode,
     required this.onLanguageChanged,
     required this.onThemeChanged,
+    required this.workTime,
+    required this.shortBreak,
+    required this.longBreak,
+    required this.sessionsBeforeLong,
+    required this.onSettingsChanged,
   });
 
   @override
@@ -152,20 +213,22 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late Language _lang;
+
   late bool isDarkMode;
+
   List<Task> tasks = [];
 
   @override
   void initState() {
     super.initState();
+
     _lang = widget.lang;
+
     isDarkMode = widget.isDarkMode;
   }
 
   void _addTaskDialog() {
     TextEditingController _controller = TextEditingController();
-    TimeOfDay? selectedTime;
-    int pomodoros = 1;
 
     showModalBottomSheet(
       context: context,
@@ -177,111 +240,63 @@ class _HomePageState extends State<HomePage> {
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
             left: 16,
             right: 16,
+            top: 16,
           ),
           child: Card(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
             ),
-            elevation: 12,
+            elevation: 8,
             child: Padding(
               padding: EdgeInsets.all(20),
-              child: StatefulBuilder(
-                builder: (context, setStateModal) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        localizedStrings[_lang]!['enter_plan']!,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.purple,
-                        ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    localizedStrings[_lang]!['enter_plan']!,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: Colors.purple[700],
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  TextField(
+                    controller: _controller,
+                    decoration: InputDecoration(
+                      labelText: localizedStrings[_lang]!['enter_plan']!,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      SizedBox(height: 12),
-                      TextField(
-                        controller: _controller,
-                        decoration: InputDecoration(
-                          labelText: localizedStrings[_lang]!['enter_plan']!,
-                          border: OutlineInputBorder(),
-                        ),
+                      prefixIcon: Icon(Icons.task, color: Colors.purple),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple[700],
+                      foregroundColor: Colors.white,
+                      minimumSize: Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () async {
-                          TimeOfDay? time = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.now(),
-                          );
-                          if (time != null) {
-                            setStateModal(() => selectedTime = time);
-                          }
-                        },
-                        child: Row(
-                          children: [
-                            Icon(Icons.access_time, color: Colors.purple),
-                            SizedBox(width: 8),
-                            Text(
-                              selectedTime == null
-                                  ? localizedStrings[_lang]!['no_time_selected']!
-                                  : selectedTime!.format(context),
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Icon(Icons.timer, color: Colors.purple),
-                          SizedBox(width: 8),
-                          Text(
-                            "${localizedStrings[_lang]!['pomodoro_count']!}: ",
-                          ),
-                          DropdownButton<int>(
-                            value: pomodoros,
-                            items: List.generate(
-                              8,
-                              (index) => DropdownMenuItem<int>(
-                                value: index + 1,
-                                child: Text("${index + 1}"),
-                              ),
-                            ),
-                            onChanged: (val) {
-                              setStateModal(() => pomodoros = val!);
-                            },
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple,
-                          minimumSize: Size(double.infinity, 50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () {
-                          if (_controller.text.isEmpty) return;
-                          setState(() {
-                            tasks.add(
-                              Task(
-                                title: _controller.text,
-                                time: selectedTime,
-                                pomodoroCount: pomodoros,
-                              ),
-                            );
-                          });
-                          Navigator.of(context).pop();
-                        },
-                        child: Text(
-                          localizedStrings[_lang]!['save']!.toUpperCase(),
-                        ),
-                      ),
-                    ],
-                  );
-                },
+                      elevation: 4,
+                    ),
+                    onPressed: () {
+                      if (_controller.text.isEmpty) return;
+
+                      setState(() {
+                        tasks.add(Task(title: _controller.text));
+                      });
+
+                      Navigator.of(context).pop();
+                    },
+                    child: Text(
+                      localizedStrings[_lang]!['save']!.toUpperCase(),
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -292,15 +307,19 @@ class _HomePageState extends State<HomePage> {
 
   void _deleteCompleted() {
     bool any = tasks.any((t) => t.completed);
+
     if (!any) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(localizedStrings[_lang]!['no_completed']!),
-          backgroundColor: Colors.purple,
+          backgroundColor: Colors.purple[700],
+          duration: Duration(seconds: 2),
         ),
       );
+
       return;
     }
+
     setState(() {
       tasks.removeWhere((t) => t.completed);
     });
@@ -309,7 +328,120 @@ class _HomePageState extends State<HomePage> {
   void _openPomodoro(Task task) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => PomodoroPage(task: task, lang: _lang)),
+      MaterialPageRoute(
+        builder:
+            (_) => PomodoroPage(
+              task: task,
+              lang: _lang,
+              workTime: widget.workTime,
+              shortBreak: widget.shortBreak,
+              longBreak: widget.longBreak,
+              sessionsBeforeLong: widget.sessionsBeforeLong,
+            ),
+      ),
+    );
+  }
+
+  void _showSettingsDialog() {
+    int tempWorkTime = widget.workTime;
+
+    int tempShortBreak = widget.shortBreak;
+
+    int tempLongBreak = widget.longBreak;
+
+    int tempSessionsBeforeLong = widget.sessionsBeforeLong;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(localizedStrings[_lang]!['settings']!),
+          content: StatefulBuilder(
+            builder: (context, setStateModal) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildSliderRow(
+                    label: localizedStrings[_lang]!['work_time']!,
+                    value: tempWorkTime,
+                    min: 1,
+                    max: 60,
+                    onChanged: (val) => setStateModal(() => tempWorkTime = val),
+                  ),
+                  _buildSliderRow(
+                    label: localizedStrings[_lang]!['short_break']!,
+                    value: tempShortBreak,
+                    min: 1,
+                    max: 30,
+                    onChanged:
+                        (val) => setStateModal(() => tempShortBreak = val),
+                  ),
+                  _buildSliderRow(
+                    label: localizedStrings[_lang]!['long_break']!,
+                    value: tempLongBreak,
+                    min: 1,
+                    max: 60,
+                    onChanged:
+                        (val) => setStateModal(() => tempLongBreak = val),
+                  ),
+                  _buildSliderRow(
+                    label: localizedStrings[_lang]!['sessions_before_long']!,
+                    value: tempSessionsBeforeLong,
+                    min: 1,
+                    max: 8,
+                    onChanged:
+                        (val) =>
+                            setStateModal(() => tempSessionsBeforeLong = val),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Bekor qilish'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                widget.onSettingsChanged(
+                  newWorkTime: tempWorkTime,
+                  newShortBreak: tempShortBreak,
+                  newLongBreak: tempLongBreak,
+                  newSessionsBeforeLong: tempSessionsBeforeLong,
+                );
+
+                Navigator.pop(ctx);
+              },
+              child: Text(localizedStrings[_lang]!['save']!),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSliderRow({
+    required String label,
+    required int value,
+    required double min,
+    required double max,
+    required ValueChanged<int> onChanged,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label),
+        Slider(
+          value: value.toDouble(),
+          min: min,
+          max: max,
+          divisions: (max - min).toInt(),
+          label: value.toString(),
+          onChanged: (double newValue) => onChanged(newValue.toInt()),
+        ),
+        Text(value.toString()),
+      ],
     );
   }
 
@@ -319,8 +451,13 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(strings['title']!),
-        backgroundColor: Colors.purple,
+        title: Text(
+          strings['title']!,
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.purple[700],
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
             onPressed: _deleteCompleted,
@@ -333,37 +470,85 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(color: Colors.purple),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.purple[700]!, Colors.purple[400]!],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
               child: Center(
                 child: Text(
                   strings['language']!,
-                  style: TextStyle(color: Colors.white, fontSize: 22),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
             ...Language.values.map((lang) {
+              String flag;
+
+              switch (lang) {
+                case Language.uz:
+                  flag = '🇺🇿';
+
+                  break;
+
+                case Language.en:
+                  flag = '🇬🇧';
+
+                  break;
+
+                case Language.ru:
+                  flag = '🇷🇺';
+
+                  break;
+              }
+
               return ListTile(
+                leading: Text(flag, style: TextStyle(fontSize: 24)),
                 title: Text(localizedStrings[lang]!['title']!),
                 selected: _lang == lang,
+                selectedTileColor: Colors.purple[100],
                 onTap: () {
                   widget.onLanguageChanged(lang);
+
                   setState(() {
                     _lang = lang;
                   });
+
                   Navigator.pop(context);
                 },
               );
             }).toList(),
             Divider(),
             ListTile(
-              leading: Icon(isDarkMode ? Icons.nights_stay : Icons.wb_sunny),
+              leading: Icon(Icons.settings, color: Colors.purple[700]),
+              title: Text(strings['settings']!),
+              onTap: () {
+                Navigator.pop(context);
+
+                _showSettingsDialog();
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                isDarkMode ? Icons.nights_stay : Icons.wb_sunny,
+                color: Colors.purple[700],
+              ),
               title: Text(
                 isDarkMode ? strings['night_mode']! : strings['day_mode']!,
+                style: TextStyle(fontWeight: FontWeight.w500),
               ),
               trailing: Switch(
                 value: isDarkMode,
+                activeColor: Colors.purple[700],
                 onChanged: (val) {
                   widget.onThemeChanged(val);
+
                   setState(() {
                     isDarkMode = val;
                   });
@@ -373,81 +558,101 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      body: ListView.builder(
-        padding: EdgeInsets.all(16),
-        itemCount: tasks.length,
-        itemBuilder: (_, i) {
-          final task = tasks[i];
-          return Card(
-            child: ListTile(
-              leading: Checkbox(
-                value: task.completed,
-                activeColor: Colors.purple,
-                onChanged: (val) {
-                  setState(() {
-                    task.completed = val!;
-                  });
-                },
-              ),
-              title: Text(task.title),
-              subtitle: Row(
-                children: [
-                  if (task.time != null)
-                    Row(
-                      children: [
-                        Icon(Icons.access_time, size: 16),
-                        SizedBox(width: 4),
-                        Text(task.time!.format(context)),
-                      ],
+      body:
+          tasks.isEmpty
+              ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.task_alt, size: 80, color: Colors.purple[300]),
+                    SizedBox(height: 16),
+                    Text(
+                      strings['enter_plan']!,
+                      style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                     ),
-                  SizedBox(width: 10),
-                  Icon(Icons.timer, size: 16),
-                  Text(" x${task.pomodoroCount}"),
-                ],
-              ),
-              trailing: PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert, color: Colors.purple),
-                onSelected: (value) {
-                  if (value == 'delete') {
-                    setState(() {
-                      tasks.removeAt(i);
-                    });
-                  } else if (value == 'start') {
-                    _openPomodoro(task);
-                  }
+                  ],
+                ),
+              )
+              : ListView.builder(
+                padding: EdgeInsets.all(12),
+                itemCount: tasks.length,
+                itemBuilder: (_, i) {
+                  final task = tasks[i];
+
+                  return Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    margin: EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                    child: ListTile(
+                      leading: Checkbox(
+                        value: task.completed,
+                        activeColor: Colors.purple[700],
+                        onChanged: (val) {
+                          setState(() {
+                            task.completed = val!;
+                          });
+                        },
+                      ),
+                      title: Text(
+                        task.title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          decoration:
+                              task.completed
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                        ),
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert, color: Colors.purple[700]),
+                        onSelected: (value) {
+                          if (value == 'delete') {
+                            setState(() {
+                              tasks.removeAt(i);
+                            });
+                          } else if (value == 'start') {
+                            _openPomodoro(task);
+                          }
+                        },
+                        itemBuilder:
+                            (_) => [
+                              PopupMenuItem(
+                                value: 'start',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.play_circle,
+                                      color: Colors.purple[700],
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(strings['start_pomodoro']!),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text(strings['delete']!),
+                                  ],
+                                ),
+                              ),
+                            ],
+                      ),
+                    ),
+                  );
                 },
-                itemBuilder:
-                    (_) => [
-                      PopupMenuItem(
-                        value: 'start',
-                        child: Row(
-                          children: [
-                            Icon(Icons.play_circle, color: Colors.purple),
-                            SizedBox(width: 8),
-                            Text(strings['start_pomodoro']!),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text(strings['delete']!),
-                          ],
-                        ),
-                      ),
-                    ],
               ),
-            ),
-          );
-        },
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addTaskDialog,
-        backgroundColor: Colors.purple,
-        child: Icon(Icons.add),
+        backgroundColor: Colors.purple[700],
+        foregroundColor: Colors.white,
+        shape: CircleBorder(),
+        child: Icon(Icons.add, size: 28),
       ),
     );
   }
@@ -455,25 +660,63 @@ class _HomePageState extends State<HomePage> {
 
 class PomodoroPage extends StatefulWidget {
   final Task task;
+
   final Language lang;
 
-  const PomodoroPage({required this.task, required this.lang});
+  final int workTime;
+
+  final int shortBreak;
+
+  final int longBreak;
+
+  final int sessionsBeforeLong;
+
+  const PomodoroPage({
+    required this.task,
+    required this.lang,
+    required this.workTime,
+    required this.shortBreak,
+    required this.longBreak,
+    required this.sessionsBeforeLong,
+  });
 
   @override
   State<PomodoroPage> createState() => _PomodoroPageState();
 }
 
-class _PomodoroPageState extends State<PomodoroPage> {
-  late int timeInMinutes;
+class _PomodoroPageState extends State<PomodoroPage>
+    with SingleTickerProviderStateMixin {
   late int remainingSeconds;
+
   Timer? _timer;
+
   bool isRunning = false;
+
+  bool isBreak = false;
+
+  int currentSession = 1;
+
+  late AnimationController _animationController;
+
+  late Animation<double> _animation;
 
   @override
   void initState() {
     super.initState();
-    timeInMinutes = widget.task.pomodoroCount * 25;
-    remainingSeconds = timeInMinutes * 60;
+
+    _resetToWork();
+
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _animation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+
+    _animationController.forward();
   }
 
   void _startTimer() {
@@ -484,8 +727,11 @@ class _PomodoroPageState extends State<PomodoroPage> {
         if (remainingSeconds > 0) {
           remainingSeconds--;
         } else {
-          _stopTimer();
-          // Optionally: show some notification or sound here
+          _timer?.cancel();
+
+          _timer = null;
+
+          _handleTimerEnd();
         }
       });
     });
@@ -493,44 +739,95 @@ class _PomodoroPageState extends State<PomodoroPage> {
     setState(() {
       isRunning = true;
     });
+
+    _animationController.forward();
   }
 
   void _stopTimer() {
     _timer?.cancel();
+
     _timer = null;
 
     setState(() {
       isRunning = false;
     });
+
+    _animationController.reverse();
   }
 
   void _resetTimer() {
     _stopTimer();
+
     setState(() {
-      remainingSeconds = timeInMinutes * 60;
+      currentSession = 1;
+
+      _resetToWork();
     });
+
+    _animationController.reverse();
   }
 
-  void _increaseTime() {
-    if (isRunning) return;
-    setState(() {
-      timeInMinutes++;
-      remainingSeconds = timeInMinutes * 60;
-    });
+  void _handleTimerEnd() {
+    if (isBreak) {
+      // Dam olish tugadi, keyingi ish sessiyasiga o'tish
+
+      currentSession++;
+
+      if (currentSession > widget.sessionsBeforeLong) {
+        // Barcha sessiyalar tugadi
+
+        isRunning = false;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(localizedStrings[widget.lang]!['pomodoro_complete']!),
+            backgroundColor: Colors.purple[700],
+          ),
+        );
+
+        return;
+      }
+
+      _resetToWork();
+    } else {
+      // Ish sessiyasi tugadi, dam olishga o'tish
+
+      _resetToBreak();
+    }
+
+    if (isRunning) _startTimer(); // Avtomatik davom etish
   }
 
-  void _decreaseTime() {
-    if (isRunning || timeInMinutes <= 1) return;
-    setState(() {
-      timeInMinutes--;
-      remainingSeconds = timeInMinutes * 60;
-    });
+  void _resetToWork() {
+    remainingSeconds = widget.workTime * 60;
+
+    isBreak = false;
+  }
+
+  void _resetToBreak() {
+    bool isLongBreak = (currentSession % widget.sessionsBeforeLong == 0);
+
+    remainingSeconds =
+        (isLongBreak ? widget.longBreak : widget.shortBreak) * 60;
+
+    isBreak = true;
   }
 
   String _formatTime(int totalSeconds) {
     int minutes = totalSeconds ~/ 60;
+
     int seconds = totalSeconds % 60;
+
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+
+    _animationController.dispose();
+
+    super.dispose();
   }
 
   @override
@@ -539,127 +836,103 @@ class _PomodoroPageState extends State<PomodoroPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(strings['pomodoro_timer']!),
-        backgroundColor: Colors.purple,
+        title: Text(
+          strings['pomodoro_timer']!,
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.purple[700],
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF6A1B9A), Color(0xFF8E24AA)],
+            colors: [Colors.purple[900]!, Colors.purple[400]!],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
-        width: double.infinity,
-        height: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 60),
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               widget.task.title,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
-                fontSize: 32,
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
+                letterSpacing: 1.2,
               ),
               textAlign: TextAlign.center,
             ),
-            Container(
-              padding: const EdgeInsets.all(30),
-              decoration: BoxDecoration(
-                color: Colors.white12,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white24),
-              ),
-              child: Text(
-                _formatTime(remainingSeconds),
-                style: const TextStyle(
-                  fontSize: 80,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
+            SizedBox(height: 10),
+            Text(
+              isBreak ? strings['break_time']! : strings['pomodoro_timer']!,
+              style: TextStyle(color: Colors.white70, fontSize: 18),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildIconButton(Icons.remove, _decreaseTime),
-                const SizedBox(width: 20),
-                Text(
-                  '$timeInMinutes min',
-                  style: const TextStyle(
-                    fontSize: 24,
+            SizedBox(height: 20),
+            ScaleTransition(
+              scale: _animation,
+              child: Container(
+                padding: EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  color: Colors.white12,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white24, width: 2),
+                ),
+                child: Text(
+                  _formatTime(remainingSeconds),
+                  style: TextStyle(
+                    fontSize: 72,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
-                    fontWeight: FontWeight.w500,
+                    letterSpacing: 2,
                   ),
                 ),
-                const SizedBox(width: 20),
-                _buildIconButton(Icons.add, _increaseTime),
-              ],
+              ),
             ),
-            Column(
+            SizedBox(height: 40),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
                   onPressed: isRunning ? _stopTimer : _startTimer,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 50,
-                      vertical: 15,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                     backgroundColor: Colors.purpleAccent,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    elevation: 10,
-                    textStyle: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    elevation: 4,
                   ),
-                  child: Text(isRunning ? 'Pause' : 'Start'),
+                  child: Text(
+                    isRunning ? 'Pause' : 'Start',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                 ),
-                const SizedBox(height: 10),
-                TextButton(
+                SizedBox(width: 20),
+                ElevatedButton(
                   onPressed: _resetTimer,
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.white70,
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                    backgroundColor: Colors.grey[700],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    elevation: 4,
                   ),
-                  child: const Text('Reset'),
+                  child: Text(
+                    'Reset',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildIconButton(IconData icon, VoidCallback onPressed) {
-    return GestureDetector(
-      onTap: isRunning ? null : onPressed,
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            colors: [Colors.deepPurpleAccent, Colors.purpleAccent],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.purple.withOpacity(0.6),
-              blurRadius: 12,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Icon(icon, color: Colors.white, size: 32),
       ),
     );
   }
